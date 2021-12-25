@@ -10,6 +10,10 @@ load_dotenv()
 
 client = tweepy.Client(bearer_token=os.environ["BEARER_TOKEN"])
 
+# Constants
+
+MAX_NUM_TWEETS = 20
+
 # Main class for loading twitter data
 
 class TwitterLoader:
@@ -30,16 +34,52 @@ class TwitterLoader:
         path = TwitterLoader.path(self.out_dir, kind + ".json")
         with open(path, "w+") as f:
             json.dump(data, f)
+
+    def load(self, kind: str):
+        path = TwitterLoader.path(self.out_dir, kind + ".json")
+        print(path)
+        with open(path, "r") as f:
+            return json.load(f)
     
 
     def tweets(
         self,
         uids: List[int], 
-        since: str = None, 
-        until: str = None
     ) -> None:
         
-        pass
+        tweet_fields = ['id', 'text', 'in_reply_to_user_id']
+        tweets = {}
+        for uid in uids:    
+            user_tweets =  tweepy.Paginator(
+                client.get_users_tweets, id=uid, tweet_fields=tweet_fields, max_results=10, exclude="retweets"
+            ).flatten(limit=MAX_NUM_TWEETS)
+
+            tweets[uid] = [
+                {key: tweet[key] for key in tweet_fields} 
+                for tweet in user_tweets if "RT @" not in tweet.text
+            ]
+
+        self.save(tweets, "tweets")
+
+    def retweets(
+        self,
+        uids: List[int], 
+    ) -> None:
+        
+        tweet_fields = ['id', 'text', 'in_reply_to_user_id']
+        tweets = {}
+        for uid in uids:    
+            user_tweets =  tweepy.Paginator(
+                client.get_users_tweets, id=uid, tweet_fields=tweet_fields, max_results=10
+            ).flatten(limit=MAX_NUM_TWEETS)
+            
+            tweets[uid] = [
+                {key: tweet[key] for key in tweet_fields} 
+                for tweet in user_tweets if "RT @" in tweet.text
+            ]
+
+        self.save(tweets, "retweets")
+
 
     def followers(self, uids: List[int]) -> None:
 
