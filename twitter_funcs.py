@@ -18,28 +18,111 @@ class TwitterLoader:
 
         return path
 
-    def all_tweets(
+    def tweets(
         self,
         unames: List[str], 
-        since: datetime.datetime = None, 
-        until: datetime.datetime = None
+        since: str = None, 
+        until: str = None
     ) -> None:
-
-        since_str = since.strftime("%x").replace("/", "-") if since else None
-
-        until_str = until.strftime("%x").replace("/", "-") if until else None
 
         for uname in unames:
             c = twint.Config()
 
-            c.Until = until_str
-            c.Since = since_str
+            c.Until = until
+            c.Since = since
 
             c.Username = uname
 
             c.Store_json = True
             c.Filter_retweets = True
     
-            c.Output = TwitterLoader.path(self.out_dir, uname, "all.json")
+            c.Output = TwitterLoader.path(self.out_dir, uname, "tweets.json")
 
             twint.run.Search(c) 
+
+    def retweets(
+        self,
+        unames: List[str], 
+        since: str = None, 
+        until: str = None
+    ) -> None:
+
+        for uname in unames:
+            c = twint.Config()
+
+            c.Until = until
+            c.Since = since
+
+            c.Username = uname
+
+            c.Native_retweets = True
+            c.Retweets = True
+
+            c.Store_json = True
+    
+            c.Output = TwitterLoader.path(self.out_dir, uname, "retweets.json")
+
+            twint.run.Search(c) 
+
+
+    def mentions(
+        self,
+        unames: List[str], 
+        since: str = None, 
+        until: str = None
+    ) -> None:
+
+        for uname in unames:
+            c = twint.Config()
+
+            c.Until = until
+            c.Since = since
+
+            c.Username = uname
+
+            c.Native_retweets = True
+            c.Retweets = True
+
+            c.Store_json = True
+    
+            c.Output = TwitterLoader.path(self.out_dir, uname, "retweets.json")
+
+            twint.run.Search(c) 
+
+    def followers(
+        self,
+        unames: List[str], 
+    ) -> None:
+
+        for uname in unames:
+            c = twint.Config()
+
+            c.Username = uname
+
+            c.Native_retweets = True
+            c.Retweets = True
+
+            c.Store_json = True
+    
+            c.Output = TwitterLoader.path(self.out_dir, uname, "following.json")
+
+            twint.run.Followers(c) 
+
+    def followed(
+        self,
+        unames: List[str], 
+    ) -> None:
+
+        for uname in unames:
+            c = twint.Config()
+
+            c.Username = uname
+
+            c.Native_retweets = True
+            c.Retweets = True
+
+            c.Store_json = True
+    
+            c.Output = TwitterLoader.path(self.out_dir, uname, "followed.json")
+
+            twint.run.Following(c) 
