@@ -1,8 +1,17 @@
-import twint
-import datetime
+import tweepy
 import os
 
 from typing import List
+
+# Twitter API setup
+from dotenv import load_dotenv
+load_dotenv()
+
+auth = tweepy.OAuthHandler(os.environ["API_KEY"], os.environ["API_SECRET_KEY"])
+auth.set_access_token(os.environ["ACCESS_KEY"], os.environ["ACCESS_SECRET_KEY"])
+api = tweepy.API(auth)
+
+# Main class for loading twitter data
 
 class TwitterLoader:
     def __init__(self, out_dir: str) -> None:
@@ -18,6 +27,7 @@ class TwitterLoader:
 
         return path
 
+
     def tweets(
         self,
         unames: List[str], 
@@ -25,104 +35,25 @@ class TwitterLoader:
         until: str = None
     ) -> None:
 
-        for uname in unames:
-            c = twint.Config()
-
-            c.Until = until
-            c.Since = since
-
-            c.Username = uname
-
-            c.Store_json = True
-            c.Filter_retweets = True
     
-            c.Output = TwitterLoader.path(self.out_dir, uname, "tweets.json")
-
-            twint.run.Search(c) 
-
-    def retweets(
-        self,
-        unames: List[str], 
-        since: str = None, 
-        until: str = None
-    ) -> None:
-
-        for uname in unames:
-            c = twint.Config()
-
-            c.Until = until
-            c.Since = since
-
-            c.Username = uname
-
-            c.Native_retweets = True
-            c.Retweets = True
-
-            c.Store_json = True
-    
-            c.Output = TwitterLoader.path(self.out_dir, uname, "retweets.json")
-
-            twint.run.Search(c) 
+        all_tweets = []
+        all_tweets.extend(tweets)
+        oldest_id = tweets[-1].id
+        while True:
+            tweets = api.user_timeline(screen_name=userID, 
+                                   # 200 is the maximum allowed count
+                                   count=200,
+                                   include_rts = False,
+                                   max_id = oldest_id - 1,
+                                   # Necessary to keep full_text 
+                                   # otherwise only the first 140 words are extracted
+                                   tweet_mode = 'extended'
+                                   )
+            if len(tweets) == 0:
+                break
+            oldest_id = tweets[-1].id
+            all_tweets.extend(tweets)
+            print('N of tweets downloaded till now {}'.format(len(all_tweets)))
 
 
-    def mentions(
-        self,
-        unames: List[str], 
-        since: str = None, 
-        until: str = None
-    ) -> None:
 
-        for uname in unames:
-            c = twint.Config()
-
-            c.Until = until
-            c.Since = since
-
-            c.Username = uname
-
-            c.Native_retweets = True
-            c.Retweets = True
-
-            c.Store_json = True
-    
-            c.Output = TwitterLoader.path(self.out_dir, uname, "retweets.json")
-
-            twint.run.Search(c) 
-
-    def followers(
-        self,
-        unames: List[str], 
-    ) -> None:
-
-        for uname in unames:
-            c = twint.Config()
-
-            c.Username = uname
-
-            c.Native_retweets = True
-            c.Retweets = True
-
-            c.Store_json = True
-    
-            c.Output = TwitterLoader.path(self.out_dir, uname, "following.json")
-
-            twint.run.Followers(c) 
-
-    def followed(
-        self,
-        unames: List[str], 
-    ) -> None:
-
-        for uname in unames:
-            c = twint.Config()
-
-            c.Username = uname
-
-            c.Native_retweets = True
-            c.Retweets = True
-
-            c.Store_json = True
-    
-            c.Output = TwitterLoader.path(self.out_dir, uname, "followed.json")
-
-            twint.run.Following(c) 
