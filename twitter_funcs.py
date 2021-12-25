@@ -80,6 +80,30 @@ class TwitterLoader:
 
         self.save(tweets, "retweets")
 
+    def mentions(
+        self,
+        uids: List[int], 
+        since: str = None,
+        until: str = None,
+    ) -> None:
+        
+        tweet_fields = ['id', 'text', 'in_reply_to_user_id']
+        tweets = {}
+        for uid in uids:    
+            user_tweets =  tweepy.Paginator(
+                client.get_users_mentions,
+                id=uid, tweet_fields=tweet_fields, 
+                start_time=since, end_time=until,
+                max_results=10
+            ).flatten(limit=MAX_NUM_TWEETS)
+            
+            tweets[uid] = [
+                {key: tweet[key] for key in tweet_fields} 
+                for tweet in user_tweets
+            ]
+
+        self.save(tweets, "mentions")
+
 
     def followers(self, uids: List[int]) -> None:
 
@@ -98,8 +122,4 @@ class TwitterLoader:
             following[uid] = [{"id": user.id, "username": user.username} for user in users]
 
         self.save(following, "following")
-
-
-
-
 
