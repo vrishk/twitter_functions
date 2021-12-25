@@ -10,3 +10,11 @@ As Diamond DAO continues to grow out Chainverse and delve into some ML tasks, it
 - Find top X interacting handles (including those that comment, like, or frequently mention)
 - Get all following account
 - Get all followed accounts
+
+## Project Setup
+
+Install the `twint` package for scraping tweets:
+
+```{bash}
+$ pip install --upgrade git+https://github.com/himanshudabas/twint.git@origin/master#egg=twint
+```
