@@ -1,15 +1,14 @@
 import tweepy
 import os
+import json
 
-from typing import List
+from typing import List, Dict
 
 # Twitter API setup
 from dotenv import load_dotenv
 load_dotenv()
 
-auth = tweepy.OAuthHandler(os.environ["API_KEY"], os.environ["API_SECRET_KEY"])
-auth.set_access_token(os.environ["ACCESS_KEY"], os.environ["ACCESS_SECRET_KEY"])
-api = tweepy.API(auth)
+client = tweepy.Client(bearer_token=os.environ["BEARER_TOKEN"])
 
 # Main class for loading twitter data
 
@@ -27,33 +26,40 @@ class TwitterLoader:
 
         return path
 
+    def save(self, data: Dict, kind: str):
+        path = TwitterLoader.path(self.out_dir, kind + ".json")
+        with open(path, "w+") as f:
+            json.dump(data, f)
+    
 
     def tweets(
         self,
-        unames: List[str], 
+        uids: List[int], 
         since: str = None, 
         until: str = None
     ) -> None:
+        
+        pass
 
-    
-        all_tweets = []
-        all_tweets.extend(tweets)
-        oldest_id = tweets[-1].id
-        while True:
-            tweets = api.user_timeline(screen_name=userID, 
-                                   # 200 is the maximum allowed count
-                                   count=200,
-                                   include_rts = False,
-                                   max_id = oldest_id - 1,
-                                   # Necessary to keep full_text 
-                                   # otherwise only the first 140 words are extracted
-                                   tweet_mode = 'extended'
-                                   )
-            if len(tweets) == 0:
-                break
-            oldest_id = tweets[-1].id
-            all_tweets.extend(tweets)
-            print('N of tweets downloaded till now {}'.format(len(all_tweets)))
+    def followers(self, uids: List[int]) -> None:
+
+        followers = {}
+        for uid in uids:    
+            users = client.get_users_followers(id=uid).data
+            followers[uid] = [{"id": user.id, "username": user.username} for user in users]
+
+        self.save(followers, "followers")
+
+    def following(self, uids: List[int]) -> None:
+
+        following = {}
+        for uid in uids:    
+            users = client.get_users_following(id=uid).data
+            following[uid] = [{"id": user.id, "username": user.username} for user in users]
+
+        self.save(following, "following")
+
+
 
 
 
