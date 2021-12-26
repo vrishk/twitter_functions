@@ -4,7 +4,9 @@ from twitter_funcs import TwitterLoader
 
 def main():
     t = TwitterLoader("outputs/test")
-    t.mentions([44196397])
+    t.tweets(["elonmusk"])
+    t.retweets(["elonmusk"])
+    t.mentions(["elonmusk"])
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,10 @@
 import tweepy
+import snscrape.modules.twitter as sntwitter
+import datetime
 import os
 import json
+
+from tqdm import tqdm
 
 from typing import List, Dict
 
@@ -15,6 +19,7 @@ client = tweepy.Client(bearer_token=os.environ["BEARER_TOKEN"])
 MAX_NUM_TWEETS = 20
 
 # Main class for loading twitter data
+
 
 class TwitterLoader:
     def __init__(self, out_dir: str) -> None:
@@ -40,71 +45,69 @@ class TwitterLoader:
         print(path)
         with open(path, "r") as f:
             return json.load(f)
-    
+
+    @staticmethod
+    def scrape(query: str, filter_retweets: str = "include") -> List[Dict]:
+        user_tweets = sntwitter.TwitterSearchScraper(query + " since:2021-12-10").get_items()
+
+        tweet = []
+
+        print(f"Scraping query `{query}`...")
+        for i, raw_tweet in tqdm(enumerate(user_tweets), total=MAX_NUM_TWEETS):
+            # If only retweets required
+            if filter_retweets == "only" and "RT @" not in raw_tweet.content:
+                continue
+            # If retweets need to be removed
+            elif filter_retweets == "exclude" and "RT @" in raw_tweet.content:
+                continue
+
+            tweet.append({
+                "id": raw_tweet.id, 
+                "content": raw_tweet.content, 
+                "date": str(raw_tweet.date)})
+
+            # Ensure that number of tweets are limited
+            if i >= MAX_NUM_TWEETS:
+                break
+
+        return tweet
 
     def tweets(
         self,
-        uids: List[int], 
+        usernames: List[str], 
     ) -> None:
         
-        tweet_fields = ['id', 'text', 'in_reply_to_user_id']
         tweets = {}
-        for uid in uids:    
-            user_tweets =  tweepy.Paginator(
-                client.get_users_tweets, id=uid, tweet_fields=tweet_fields, max_results=10, exclude="retweets"
-            ).flatten(limit=MAX_NUM_TWEETS)
-
-            tweets[uid] = [
-                {key: tweet[key] for key in tweet_fields} 
-                for tweet in user_tweets if "RT @" not in tweet.text
-            ]
+        print("Extract tweets...")
+        for uname in usernames:    
+            tweets[uname] = TwitterLoader.scrape(f"from:{uname}", filter_retweets="exclude")
 
         self.save(tweets, "tweets")
 
     def retweets(
         self,
-        uids: List[int], 
+        usernames: List[str], 
     ) -> None:
         
-        tweet_fields = ['id', 'text', 'in_reply_to_user_id']
         tweets = {}
-        for uid in uids:    
-            user_tweets =  tweepy.Paginator(
-                client.get_users_tweets, id=uid, tweet_fields=tweet_fields, max_results=10
-            ).flatten(limit=MAX_NUM_TWEETS)
-            
-            tweets[uid] = [
-                {key: tweet[key] for key in tweet_fields} 
-                for tweet in user_tweets if "RT @" in tweet.text
-            ]
+        for uname in usernames:    
+            tweets[uname] = TwitterLoader.scrape(f"from:{uname} include:nativeretweets", filter_retweets="only")
 
         self.save(tweets, "retweets")
 
     def mentions(
         self,
-        uids: List[int], 
+        usernames: List[str], 
         since: str = None,
         until: str = None,
     ) -> None:
-        
-        tweet_fields = ['id', 'text', 'in_reply_to_user_id']
+                
         tweets = {}
-        for uid in uids:    
-            user_tweets =  tweepy.Paginator(
-                client.get_users_mentions,
-                id=uid, tweet_fields=tweet_fields, 
-                start_time=since, end_time=until,
-                max_results=10
-            ).flatten(limit=MAX_NUM_TWEETS)
-            
-            tweets[uid] = [
-                {key: tweet[key] for key in tweet_fields} 
-                for tweet in user_tweets
-            ]
-
+        for uname in usernames:    
+            tweets[uname] = TwitterLoader.scrape(f"@{uname}", filter_retweets="exclude")
+    
         self.save(tweets, "mentions")
-
-
+    
     def followers(self, uids: List[int]) -> None:
 
         followers = {}
