@@ -1,0 +1,6 @@
+boto3==1.18.21
+python-dotenv==0.19.2
+python_dateutil==2.8.2
+snscrape==0.4.2.20211216.dev4+geee06d8
+tqdm==4.62.3
+tweepy==4.4.0

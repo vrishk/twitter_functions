@@ -13,15 +13,14 @@ As Diamond DAO continues to grow out Chainverse and delve into some ML tasks, it
 
 ## Project Setup
 
-Install the `tweepy` (and `dotenv` dependency) and `snscrape` packages for scraping user data and unlimited tweets:
+Install the required packages from the requirements.txt file:
 
 ```{bash}
-pip install tweepy python-dotenv, tqdm
-pip install git+https://github.com/JustAnotherArchivist/snscrape.git
+pip install requirements.txt
 ```
 
 Note that `tweepy` requires a valid `BEARER_TOKEN` by signing up at dev.twitter.com.
-
+Additionally, ensure you have s3 access keys in your environment or in the proper .aws directory.
 
 ## Usage
 
@@ -30,6 +29,12 @@ The main class is the `TwitterLoader` in the `twitter_functions.py` file. All th
 For example, to mine all tweets from @elonmusk:
 
 ```
+
 t = TwitterLoader("outputs/elon", since=datetime(2021, 12, 10))
 t.tweets(["elonmusk"])
+
+```
+
+```
+
 ```
