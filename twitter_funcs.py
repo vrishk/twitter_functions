@@ -156,19 +156,21 @@ class TwitterLoader:
         self.save(top_interactive, "top_interactive")
         
 
-    def followers(self, uids: List[int]) -> None:
+    def followers(self, usernames: List[str]) -> None:
 
         followers = {}
-        for uid in uids:    
+        for uname in usernames:    
+            uid = client.get_user(username=uname).data.id
             users = client.get_users_followers(id=uid).data
             followers[uid] = [{"id": user.id, "username": user.username} for user in users]
 
         self.save(followers, "followers")
 
-    def following(self, uids: List[int]) -> None:
+    def following(self, usernames: List[str]) -> None:
 
         following = {}
-        for uid in uids:    
+        for uname in usernames:    
+            uid = client.get_user(username=uname).data.id
             users = client.get_users_following(id=uid).data
             following[uid] = [{"id": user.id, "username": user.username} for user in users]
 
