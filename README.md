@@ -13,8 +13,23 @@ As Diamond DAO continues to grow out Chainverse and delve into some ML tasks, it
 
 ## Project Setup
 
-Install the `twint` package for scraping tweets:
+Install the `tweepy` (and `dotenv` dependency) and `snscrape` packages for scraping user data and unlimited tweets:
 
 ```{bash}
-$ pip install --upgrade git+https://github.com/himanshudabas/twint.git@origin/master#egg=twint
+pip install tweepy python-dotenv, tqdm
+pip install git+https://github.com/JustAnotherArchivist/snscrape.git
+```
+
+Note that `tweepy` requires a valid `BEARER_TOKEN` by signing up at dev.twitter.com.
+
+
+## Usage
+
+The main class is the `TwitterLoader` in the `twitter_functions.py` file. All the functions with their usage is provided in the same file.
+
+For example, to mine all tweets from @elonmusk:
+
+```
+t = TwitterLoader("outputs/elon", since=datetime(2021, 12, 10))
+t.tweets(["elonmusk"])
 ```
