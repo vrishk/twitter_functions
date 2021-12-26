@@ -1,9 +1,11 @@
 import tweepy
 import snscrape.modules.twitter as sntwitter
-import datetime
+import collections
+import itertools 
 import os
 import json
 
+from datetime import datetime
 from tqdm import tqdm
 
 from typing import List, Dict
@@ -22,8 +24,16 @@ MAX_NUM_TWEETS = 20
 
 
 class TwitterLoader:
-    def __init__(self, out_dir: str) -> None:
+    def __init__(self, out_dir: str, since: datetime, until: datetime = None) -> None:
         self.out_dir = TwitterLoader.path(out_dir)
+        
+        format = "%Y-%m-%d"
+        self.interval_str = ""
+        if until is None:
+            self.interval_str = f" since:{since.strftime(format)}"
+        else:
+            self.interval_str = f" since:{since.strftime(format)} until:{until.strftime(format)}"
+
 
     @staticmethod
     def path(*path_slices: str):
@@ -42,13 +52,13 @@ class TwitterLoader:
 
     def load(self, kind: str):
         path = TwitterLoader.path(self.out_dir, kind + ".json")
-        print(path)
         with open(path, "r") as f:
             return json.load(f)
 
-    @staticmethod
-    def scrape(query: str, filter_retweets: str = "include") -> List[Dict]:
-        user_tweets = sntwitter.TwitterSearchScraper(query + " since:2021-12-10").get_items()
+    def scrape(self, query: str, filter_retweets: str = "include") -> List[Dict]:
+
+        query += self.interval_str
+        user_tweets = sntwitter.TwitterSearchScraper(query).get_items()
 
         tweet = []
 
@@ -63,8 +73,12 @@ class TwitterLoader:
 
             tweet.append({
                 "id": raw_tweet.id, 
+                "username": raw_tweet.user.username,
                 "content": raw_tweet.content, 
-                "date": str(raw_tweet.date)})
+                "date": str(raw_tweet.date),
+                "reply_to": None if raw_tweet.inReplyToUser is None else raw_tweet.inReplyToUser.username,
+                "mentioned_users": [] if raw_tweet.mentionedUsers is None else [user.username for user in raw_tweet.mentionedUsers]
+            })
 
             # Ensure that number of tweets are limited
             if i >= MAX_NUM_TWEETS:
@@ -78,9 +92,9 @@ class TwitterLoader:
     ) -> None:
         
         tweets = {}
-        print("Extract tweets...")
-        for uname in usernames:    
-            tweets[uname] = TwitterLoader.scrape(f"from:{uname}", filter_retweets="exclude")
+
+        for uname in usernames:
+            tweets[uname] = self.scrape(f"from:{uname}", filter_retweets="exclude")
 
         self.save(tweets, "tweets")
 
@@ -90,24 +104,58 @@ class TwitterLoader:
     ) -> None:
         
         tweets = {}
-        for uname in usernames:    
-            tweets[uname] = TwitterLoader.scrape(f"from:{uname} include:nativeretweets", filter_retweets="only")
+        for uname in usernames:
+            tweets[uname] = self.scrape(f"from:{uname} include:nativeretweets", filter_retweets="only")
 
         self.save(tweets, "retweets")
 
     def mentions(
         self,
         usernames: List[str], 
-        since: str = None,
-        until: str = None,
     ) -> None:
                 
         tweets = {}
-        for uname in usernames:    
-            tweets[uname] = TwitterLoader.scrape(f"@{uname}", filter_retweets="exclude")
+        for uname in usernames:
+            tweets[uname] = self.scrape(f"@{uname}", filter_retweets="exclude")
     
         self.save(tweets, "mentions")
     
+    def topX_interactive(self, usernames: List[str], X: int):
+        """
+            Creates lists of top-X interactive users by the following criteria:
+            - Mentions by a given user
+            - Mentions of a given user
+            - Replies from a given user
+        """
+        
+        tweets = self.load("tweets")
+        mentions = self.load("mentions")
+
+        def get_topX(unames: List[str], _X: int) -> List[str]:
+            freq_list = collections.Counter(unames).items()
+            freq_list = sorted(freq_list, key=lambda pair: -pair[1])[:_X]
+
+            return [pair[0] for pair in freq_list]
+
+
+        top_interactive = {}
+
+        for uname in usernames:
+
+            top_interactive[uname] = {}
+
+            main_user_mentions = list(itertools.chain(*[tweet["mentioned_users"] for tweet in tweets[uname]]))
+            top_interactive[uname]["main_user_mentions"] = get_topX(main_user_mentions, X)
+
+            other_user_mentions = [tweet["username"] for tweet in mentions[uname]]
+            top_interactive[uname]["other_user_mentions"] = get_topX(other_user_mentions, X)
+
+            replies_to_users = [tweet["reply_to"] for tweet in tweets[uname] if tweet["reply_to"] is not None]
+            top_interactive[uname]["replies_to_users"] = get_topX(replies_to_users, X)
+
+        self.save(top_interactive, "top_interactive")
+        
+
     def followers(self, uids: List[int]) -> None:
 
         followers = {}
