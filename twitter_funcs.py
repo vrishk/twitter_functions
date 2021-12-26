@@ -24,19 +24,28 @@ MAX_NUM_TWEETS = 20
 
 
 class TwitterLoader:
-    def __init__(self, out_dir: str, since: datetime, until: datetime = None) -> None:
+    def __init__(self, out_dir: str, since: datetime = None, until: datetime = None) -> None:
+        """Init function for Twitter data loader
+
+        Args:
+            out_dir: path to output directory
+            since: datetime object from when data is collected. Default 
+                is earliest time when data is available. Only date-level precision.
+            until: datetime object till when data is collected. Default 
+                is present date. Only date-level precision.
+        """
         self.out_dir = TwitterLoader.path(out_dir)
         
         format = "%Y-%m-%d"
         self.interval_str = ""
-        if until is None:
-            self.interval_str = f" since:{since.strftime(format)}"
-        else:
-            self.interval_str = f" since:{since.strftime(format)} until:{until.strftime(format)}"
-
+        if until is not None:
+            self.interval_str += f" until:{until.strftime(format)}"
+        if since is not None:
+            self.interval_str += f" since:{since.strftime(format)}"
 
     @staticmethod
     def path(*path_slices: str):
+        """Safe path creation and access function"""
         path = os.path.join(*path_slices)
         
         dir_path = os.path.dirname(path)
@@ -46,16 +55,29 @@ class TwitterLoader:
         return path
 
     def save(self, data: Dict, kind: str):
+        """Save dictionary data as json in output_dir"""
         path = TwitterLoader.path(self.out_dir, kind + ".json")
         with open(path, "w+") as f:
             json.dump(data, f)
 
     def load(self, kind: str):
+        """Load json data from output_dir"""
         path = TwitterLoader.path(self.out_dir, kind + ".json")
         with open(path, "r") as f:
             return json.load(f)
 
     def scrape(self, query: str, filter_retweets: str = "include") -> List[Dict]:
+        """Scrape data corresponding to a query
+
+        Args:
+            query: The search query to obtain tweets. Example format 'from:username'.
+            filter_retweets: Filtering retweets - 'only' (only retweets), 'include' 
+                (tweets and retweets), 'exclude' (no retweets)
+        Returns:
+            List of tweet dictionaries with tweet id, username of tweet, content (text),
+            date and time of tweet, username replied to (if it is a reply tweet), 
+            mentioned users (@user mentions if any)
+        """
 
         query += self.interval_str
         user_tweets = sntwitter.TwitterSearchScraper(query).get_items()
@@ -90,6 +112,7 @@ class TwitterLoader:
         self,
         usernames: List[str], 
     ) -> None:
+        """Scrape all tweets (excluding retweets) from a list of usernames and store in output_dir/tweets.json"""
         
         tweets = {}
 
@@ -102,6 +125,7 @@ class TwitterLoader:
         self,
         usernames: List[str], 
     ) -> None:
+        """Scrape all retweets from a list of usernames and store in output_dir/retweets.json"""
         
         tweets = {}
         for uname in usernames:
@@ -113,6 +137,7 @@ class TwitterLoader:
         self,
         usernames: List[str], 
     ) -> None:
+        """Scrape all tweets with mentions of usernames in the list and store in output_dir/mentions.json"""
                 
         tweets = {}
         for uname in usernames:
@@ -121,11 +146,15 @@ class TwitterLoader:
         self.save(tweets, "mentions")
     
     def topX_interactive(self, usernames: List[str], X: int):
-        """
-            Creates lists of top-X interactive users by the following criteria:
+        """Find top-X interactive users with a given list of users and store in output_dir/top_interactive.json
+
+        Creates lists of top-X interactive users by the following criteria:
             - Mentions by a given user
             - Mentions of a given user
             - Replies from a given user
+
+        Note: this requires that the TwitterLoader.tweets() and TwitterLoader.mentions()
+            be run on the same set of usernames as it uses that data.
         """
         
         tweets = self.load("tweets")
@@ -157,6 +186,7 @@ class TwitterLoader:
         
 
     def followers(self, usernames: List[str]) -> None:
+        """Scrape all followers from a list of usernames and store in output_dir/followed.json"""
 
         followers = {}
         for uname in usernames:    
@@ -167,6 +197,7 @@ class TwitterLoader:
         self.save(followers, "followers")
 
     def following(self, usernames: List[str]) -> None:
+        """Scrape users followed by a list of usernames and store in output_dir/following.json"""
 
         following = {}
         for uname in usernames:    
