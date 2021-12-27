@@ -16,7 +16,7 @@ As Diamond DAO continues to grow out Chainverse and delve into some ML tasks, it
 Install the required packages from the requirements.txt file:
 
 ```{bash}
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 Note that `tweepy` requires a valid `BEARER_TOKEN` by signing up at dev.twitter.com.
@@ -26,15 +26,3 @@ Additionally, ensure you have s3 access keys in your environment or in the prope
 
 The main class is the `TwitterLoader` in the `twitter_functions.py` file. All the functions with their usage is provided in the same file.
 
-For example, to mine all tweets from @elonmusk:
-
-```
-
-t = TwitterLoader("outputs/elon", since=datetime(2021, 12, 10))
-t.tweets(["elonmusk"])
-
-```
-
-```
-
-```
